@@ -30,10 +30,16 @@ def extract_features(model, data_loader, print_freq=50):
     with torch.no_grad():
        
         for i, (imgs, fnames, pids, _,_) in enumerate(data_loader):
+            fnames = fnames.asnumpy()
+            pids = pids.asnumpy()
             data_time.update(time.time() - end)
             outputs = extract_cnn_feature(model, imgs)
-
-            for fname, output, pid in zip(fnames, outputs, pids):
+            for i in range(fnames.shape[0]):
+            # for fname, output, pid in zip(fnames, outputs, pids):
+                fname = fnames[i]
+                output = outputs[i]
+                pid = pids[i]
+                
                 features[fname] = output
                 labels[fname] = pid
 
@@ -53,20 +59,24 @@ def extract_features(model, data_loader, print_freq=50):
 def pairwise_distance(features, query=None, gallery=None):
     if query is None and gallery is None:
         n = len(features)
-        x = mindspore.cat(list(features.values()))
+        x = mindspore.ops.cat(list(features.values()))
         x = x.view(n, -1)
-        dist_m = mindspore.pow(x, 2).sum(dim=1, keepdim=True) * 2
-        dist_m = dist_m.expand(n, n) - 2 *mindspore.mm(x, x.t())
+        dist_m = mindspore.ops.pow(x, 2)
+        dist_m = mindspore.ops.sum(dist_m, dim=1, keepdim=True)
+        dist_m = dist_m * 2
+        dist_m = dist_m.expand(n, n) - 2 *mindspore.ops.mm(x,  mindspore.ops.transpose(x, (1,0)))
         return dist_m
-
-    x = mindspore.cat([features[f].unsqueeze(0) for f, _, _ in query], 0)
-    y = mindspore.cat([features[f].unsqueeze(0) for f, _, _ in gallery], 0)
-
+    
+    x = mindspore.ops.cat([features[f].unsqueeze(0) for f, _, _ in query], 0)
+    y = mindspore.ops.cat([features[f].unsqueeze(0) for f, _, _ in gallery], 0)
+    x = torch.from_numpy(x.asnumpy())
+    y = torch.from_numpy(y.asnumpy())
     m, n = x.size(0), y.size(0)
     x = x.view(m, -1)
     y = y.view(n, -1)
-    dist_m = mindspore.pow(x, 2).sum(dim=1, keepdim=True).expand(m, n) + \
-             mindspore.pow(y, 2).sum(dim=1, keepdim=True).expand(n, m).t()
+    
+    dist_m = torch.pow(x, 2).sum(dim=1, keepdim=True).expand(m, n) + \
+             torch.pow(y, 2).sum(dim=1, keepdim=True).expand(n, m).t()
     dist_m.addmm_(1, -2, x, y.t())
 
     return dist_m, x.numpy(), y.numpy()
