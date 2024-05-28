@@ -33,6 +33,14 @@ ARCH=resnet50
 SRC1/SRC2/SRC3=market1501/dukemtmc/cuhk03/msmt17v1/cuhk_sysu
 TARGET=market1501/dukemtmc/cuhk03/msmt17v1
 
+# evaluate
+CUDA_VISIBLE_DEVICES=0,1,2,3 python main.py \
+-a resnet50 -b 64 --test-batch-size 256 --iters 200 --lr 3.5e-4 --epoch 70 \
+--dataset_src1 msmt17v1 --dataset_src2 cuhk03 --dataset_src3 market1501 -d dukemtmc \
+--evalute \
+--logs-dir logs/Baseline \
+--data-dir DATA_PATH
+
 # train baseline
 CUDA_VISIBLE_DEVICES=0,1,2,3 python main.py \
 -a resnet50 -b 64 --test-batch-size 256 --iters 200 --lr 3.5e-4 --epoch 70 \
@@ -62,7 +70,6 @@ CUDA_VISIBLE_DEVICES=0,1,2,3 python main.py \
     ------------------------------------------------------------
     
  (2) Just simply set '--updateStyle' can activate the interleaved learning.
-
 
 ### Results
 ![](figures/performance.png)
